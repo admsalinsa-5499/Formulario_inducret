@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Inducret – Alta de Empleado</title>
+
+  <!--
+    ┌─────────────────────────────────────────────────────┐
+    │  LIBRERÍAS EXTERNAS (se cargan desde internet)      │
+    │  SheetJS  → genera el archivo Excel (.xlsx)         │
+    │  QRCode   → muestra el QR de acceso                 │
+    └─────────────────────────────────────────────────────┘
+  -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════
+     ENCABEZADO / HEADER
+     ═══════════════════════════════════════════════════════ -->
+<header class="site-header">
+  <div class="header-inner">
+    <img src="Logo_de_inducret.jpg" alt="Inducret" class="logo" onerror="this.style.display='none'" />
+    <div class="header-text">
+      <span class="company-name">INDUCRET</span>
+      <span class="company-sub">Hormigón Elaborado S.A.S.</span>
+    </div>
+    <div class="header-right">
+      <span class="form-title">Alta de Empleado</span>
+    </div>
+  </div>
+  <!-- Barra de progreso de secciones -->
+  <div class="progress-bar-wrap">
+    <div class="progress-step active" data-step="1">1. Identificación</div>
+    <div class="progress-step" data-step="2">2. Domicilio</div>
+    <div class="progress-step" data-step="3">3. Contacto</div>
+    <div class="progress-step" data-step="4">4. Datos Personales</div>
+    <div class="progress-step" data-step="5">5. Familiares</div>
+    <div class="progress-step" data-step="6">6. Documentos</div>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════════════════════════
+     CONTENEDOR PRINCIPAL
+     ═══════════════════════════════════════════════════════ -->
+<main class="form-container">
+
+  <!-- ── SECCIÓN 1: IDENTIFICACIÓN ─────────────────────── -->
+  <section class="form-section active" id="sec-1">
+    <div class="section-badge">01</div>
+    <h2 class="section-title">Identificación</h2>
+    <p class="section-desc">Ingresá tus datos de identidad. Los campos con <span class="req-star">★</span> son obligatorios.</p>
+
+    <div class="form-grid">
+
+      <div class="field-wrap col-2">
+        <label for="Apellido">Apellido <span class="req-star">★</span></label>
+        <input type="text" id="Apellido" name="Apellido"
+               placeholder="Ej: GARCÍA"
+               autocomplete="family-name"
+               required
+               oninput="soloLetras(this)" />
+        <span class="field-hint">Solo letras. Se guardará en mayúsculas.</span>
+        <span class="field-error" id="err-Apellido"></span>
+      </div>
+
+      <div class="field-wrap col-2">
+        <label for="Nombre">Nombre/s <span class="req-star">★</span></label>
+        <input type="text" id="Nombre" name="Nombre"
+               placeholder="Ej: JUAN CARLOS"
+               autocomplete="given-name"
+               required
+               oninput="soloLetras(this)" />
+        <span class="field-hint">Solo letras y espacios.</span>
+        <span class="field-error" id="err-Nombre"></span>
+      </div>
+
+      <div class="field-wrap col-2">
+        <label for="TipoDocumentoCodigo">Tipo de Documento <span class="req-star">★</span></label>
+        <!--
+          SELECT: lista cerrada de valores válidos según la planilla.
+          El empleado NO puede escribir otro valor.
+        -->
+        <select id="TipoDocumentoCodigo" name="TipoDocumentoCodigo" required>
+          <option value="">— Seleccioná —</option>
+          <option value="DNI">DNI</option>
+          <option value="CDI">CDI</option>
+          <option value="LC">LC – Libreta Cívica</option>
+          <option value="LE">LE – Libreta de Enrolamiento</option>
+          <option value="TRAMITE">TRAMITE</option>
+        </select>
+        <span class="field-error" id="err-TipoDocumentoCodigo"></span>
+      </div>
+
+      <div class="field-wrap col-2">
+        <label for="NroDocumento">Nº de Documento <span class="req-star">★</span></label>
+        <input type="text" id="NroDocumento" name="NroDocumento"
+               placeholder="Ej: 28690678"
+               maxlength="10"
+               inputmode="numeric"
+               required
+               oninput="soloNumeros(this)" />
+        <span class="field-hint">Solo números, sin puntos ni espacios.</span>
+        <span class="field-error" id="err-NroDocumento"></span>
+      </div>
+
+      <div class="field-wrap col-4">
+        <label for="CUIL">CUIL <span class="req-star">★</span></label>
+        <input type="text" id="CUIL" name="CUIL"
+               placeholder="20-28690678-9"
+               maxlength="13"
+               inputmode="numeric"
+               required
+               oninput="formatearCuil(this)" />
+        <span class="field-hint">Con guiones: XX-XXXXXXXX-X (13 caracteres).</span>
+        <span class="field-error" id="err-CUIL"></span>
+      </div>
+
+    </div><!-- /form-grid -->
+
+    <div class="section-nav">
+      <span></span>
+      <button class="btn btn-next" onclick="irA(2)">Siguiente →</button>
+    </div>
+  </section>
+
+
+  <!-- ── SECCIÓN 2: DOMICILIO ───────────────────────────── -->
+  <section class="form-section" id="sec-2">
+    <div class="section-badge">02</div>
+    <h2 class="section-title">Domicilio</h2>
+    <p class="section-desc">Ingresá tu dirección actual.</p>
+
+    <div class="form-grid">
+
+      <div class="field-wrap col-3">
+        <label for="Calle">Calle <span class="req-star">★</span></label>
+        <input type="text" id="Calle" name="Calle"
+               placeholder="Ej: Av. San Martín"
+               required />
+        <span class="field-error" id="err-Calle"></span>
+      </div>
+
+      <div class="field-wrap col-1">
+        <label for="Nro">Número</label>
+        <input type="text" id="Nro" name="Nro"
+               placeholder="1234"
+               maxlength="6"
+               oninput="soloNumeros(this)" />
+      </div>
+
+      <div class="field-wrap col-1">
+        <label for="Piso">Piso</label>
+        <input type="text" id="Piso" name="Piso"
+               placeholder="3"
+               maxlength="4" />
+      </div>
+
+      <div class="field-wrap col-1">
+        <label for="Dpto">Dpto</label>
+        <input type="text" id="Dpto" name="Dpto"
+               placeholder="B"
+               maxlength="6" />
+      </div>
+
+      <div class="field-wrap col-1">
+        <label for="Torre">Torre</label>
+        <input type="text" id="Torre" name="Torre"
+               placeholder="Norte"
+               maxlength="10" />
+      </div>
+
+      <div class="field-wrap col-2">
+        <label for="Localidad">Localidad</label>
+        <input type="text" id="Localidad" name="Localidad"
+               placeholder="Ej: Luján de Cuyo" />
+      </div>
+
+      <div class="field-wrap col-2">
+        <label for="Provincia">Provincia</label>
+        <input type="text" id="Provincia" name="Provincia"
+               placeholder="Ej: Mendoza" />
+      </div>
+
+      <div class="field-wrap col-2">
+        <label for="CodigoPostal">Código Postal</label>
+        <input type="text" id="CodigoPostal" name="CodigoPostal"
+               placeholder="5507"
+               maxlength="8"
+               oninput="soloNumeros(this)" />
+      </div>
+
+    </div>
+
+    <div class="section-nav">
+      <button class="btn btn-back" onclick="irA(1)">← Anterior</button>
+      <button class="btn btn-next" onclick="irA(3)">Siguiente →</button>
+    </div>
+  </section>
+
+
+  <!-- ── SECCIÓN 3: CONTACTO ────────────────────────────── -->
+  <section class="form-section" id="sec-3">
+    <div class="section-badge">03</div>
+    <h2 class="section-title">Contacto</h2>
+    <p class="section-desc">Teléfonos y email de contacto.</p>
+
+    <div class="form-grid">
+
+      <div class="field-wrap col-2">
+        <label for="TelefonoFijo">Teléfono Fijo</label>
+        <input type="text" id="TelefonoFijo" name="TelefonoFijo"
+               placeholder="Ej: 2614XXXXXX"
+               maxlength="15"
+               inputmode="numeric"
+               oninput="soloNumeros(this)" />
+        <span class="field-hint">Solo números, sin 0 ni prefijo internacional.</span>
+      </div>
+
+      <div class="field-wrap col-2">
+        <label for="TelefonoCelular">Teléfono Celular</label>
+        <input type="text" id="TelefonoCelular" name="TelefonoCelular"
+               placeholder="Ej: 2615984321"
+               maxlength="10"
+               inputmode="numeric"
+               oninput="soloNumeros(this)" />
+        <span class="field-hint">10 dígitos. Sin 0 ni 15 al inicio.</span>
+        <span class="field-error" id="err-TelefonoCelular"></span>
+      </div>
+
+      <div class="field-wrap col-4">
+        <label for="Email">Email</label>
+        <input type="email" id="Email" name="Email"
+               placeholder="nombre@correo.com"
+               autocomplete="email"
+               inputmode="email" />
+        <span class="field-error" id="err-Email"></span>
+      </div>
+
+    </div>
+
+    <div class="section-nav">
+      <button class="btn btn-back" onclick="irA(2)">← Anterior</button>
+      <button class="btn btn-next" onclick="irA(4)">Siguiente →</button>
+    </div>
+  </section>
+
+
+  <!-- ── SECCIÓN 4: DATOS PERSONALES ───────────────────── -->
+  <section class="form-section" id="sec-4">
+    <div class="section-badge">04</div>
+    <h2 class="section-title">Datos Personales</h2>
+    <p class="section-desc">Información personal y civil.</p>
+
+    <div class="form-grid">
+
+      <div class="field-wrap col-2">
+        <label>Sexo <span class="req-star">★</span></label>
+        <!--
+          RADIO BUTTONS: solo 3 valores posibles según planilla.
+          M=masculino, F=femenino, X=otro
+        -->
+        <div class="radio-group" id="Sexo">
+          <label class="radio-opt">
+            <input type="radio" name="Sexo" value="M" /> Masculino
+          </label>
+          <label class="radio-opt">
+            <input type="radio" name="Sexo" value="F" /> Femenino
+          </label>
+          <label class="radio-opt">
+            <input type="radio" name="Sexo" value="X" /> Otro
+          </label>
+        </div>
+        <span class="field-error" id="err-Sexo"></span>
+      </div>
+
+      <div class="field-wrap col-2">
+        <label for="EstadoCivil">Estado Civil <span class="req-star">★</span></label>
+        <select id="EstadoCivil" name="EstadoCivil" required>
+          <option value="">— Seleccioná —</option>
+          <option value="S">Soltero/a</option>
+          <option value="C">Casado/a</option>
+          <option value="E">En Concubinato</option>
+          <option value="D">Divorciado/a</option>
+          <option value="P">Separado/a</option>
+          <option value="V">Viudo/a</option>
+        </select>
+        <span class="field-error" id="err-EstadoCivil"></span>
+      </div>
+
+      <div class="field-wrap col-2">
+        <label for="FechaNacimiento">Fecha de Nacimiento <span class="req-star">★</span></label>
+        <!--
+          type="date" → el navegador muestra un calendario.
+          Luego en JS lo convertimos al formato DD/MM/AAAA que pide el Excel.
+        -->
+        <input type="date" id="FechaNacimiento" name="FechaNacimiento" required />
+        <span class="field-hint">Seleccioná del calendario.</span>
+        <span class="field-error" id="err-FechaNacimiento"></span>
+      </div>
+
+      <div class="field-wrap col-2">
+        <label>Discapacidad <span class="req-star">★</span></label>
+        <div class="radio-group" id="Discapacitado">
+          <label class="radio-opt">
+            <input type="radio" name="Discapacitado" value="0" checked /> No
+          </label>
+          <label class="radio-opt">
+            <input type="radio" name="Discapacitado" value="1" /> Sí
+          </label>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="section-nav">
+      <button class="btn btn-back" onclick="irA(3)">← Anterior</button>
+      <button class="btn btn-next" onclick="irA(5)">Siguiente →</button>
+    </div>
+  </section>
+
+
+  <!-- ── SECCIÓN 5: FAMILIARES ──────────────────────────── -->
+  <section class="form-section" id="sec-5">
+    <div class="section-badge">05</div>
+    <h2 class="section-title">Familiares a Cargo</h2>
+    <p class="section-desc">
+      Esta sección es opcional. Podés agregar tantos familiares como necesites.<br>
+      <small>ℹ️ En el Excel se generará una fila por cada familiar, repitiendo los datos del empleado.</small>
+    </p>
+
+    <!-- Los bloques de familiares se generan dinámicamente con JS -->
+    <div id="familiares-lista"></div>
+
+    <button class="btn btn-add" type="button" onclick="agregarFamiliar()">
+      ＋ Agregar familiar
+    </button>
+
+    <div class="section-nav">
+      <button class="btn btn-back" onclick="irA(4)">← Anterior</button>
+      <button class="btn btn-next" onclick="irA(6)">Siguiente →</button>
+    </div>
+  </section>
+
+
+  <!-- ── SECCIÓN 6: DOCUMENTOS (DNI + LICENCIA) ─────────── -->
+  <section class="form-section" id="sec-6">
+    <div class="section-badge">06</div>
+    <h2 class="section-title">Carga de Documentos</h2>
+    <p class="section-desc">
+      Subí fotos de tu DNI y Licencia de conducir (frente y dorso).<br>
+      Podés <strong>sacar una foto desde la cámara</strong> de tu celular o <strong>seleccionar un archivo</strong> de tu dispositivo (JPG, PNG o PDF).
+    </p>
+
+    <div class="docs-grid">
+
+      <!-- DNI Frente -->
+      <div class="doc-card" id="card-dniFrente">
+        <div class="doc-icon">🪪</div>
+        <div class="doc-label">DNI — Frente</div>
+        <div class="doc-preview" id="prev-dniFrente">
+          <span class="doc-placeholder">Sin imagen</span>
+        </div>
+        <div class="doc-btns">
+          <!--
+            accept="image/*,application/pdf"  → acepta imágenes y PDF
+            capture="environment"             → en celular abre la cámara trasera
+          -->
+          <label class="btn btn-cam" for="inp-dniFrente-cam">📷 Cámara</label>
+          <input type="file" id="inp-dniFrente-cam"
+                 accept="image/*" capture="environment"
+                 onchange="previsualizarDoc(this,'dniFrente')" hidden />
+
+          <label class="btn btn-file" for="inp-dniFrente-file">📂 Archivo</label>
+          <input type="file" id="inp-dniFrente-file"
+                 accept="image/*,application/pdf"
+                 onchange="previsualizarDoc(this,'dniFrente')" hidden />
+        </div>
+        <span class="doc-status" id="status-dniFrente">⏳ Pendiente</span>
+      </div>
+
+      <!-- DNI Dorso -->
+      <div class="doc-card" id="card-dniDorso">
+        <div class="doc-icon">🪪</div>
+        <div class="doc-label">DNI — Dorso</div>
+        <div class="doc-preview" id="prev-dniDorso">
+          <span class="doc-placeholder">Sin imagen</span>
+        </div>
+        <div class="doc-btns">
+          <label class="btn btn-cam" for="inp-dniDorso-cam">📷 Cámara</label>
+          <input type="file" id="inp-dniDorso-cam"
+                 accept="image/*" capture="environment"
+                 onchange="previsualizarDoc(this,'dniDorso')" hidden />
+
+          <label class="btn btn-file" for="inp-dniDorso-file">📂 Archivo</label>
+          <input type="file" id="inp-dniDorso-file"
+                 accept="image/*,application/pdf"
+                 onchange="previsualizarDoc(this,'dniDorso')" hidden />
+        </div>
+        <span class="doc-status" id="status-dniDorso">⏳ Pendiente</span>
+      </div>
+
+      <!-- Licencia Frente -->
+      <div class="doc-card" id="card-licFrente">
+        <div class="doc-icon">🚗</div>
+        <div class="doc-label">Licencia — Frente</div>
+        <div class="doc-preview" id="prev-licFrente">
+          <span class="doc-placeholder">Sin imagen</span>
+        </div>
+        <div class="doc-btns">
+          <label class="btn btn-cam" for="inp-licFrente-cam">📷 Cámara</label>
+          <input type="file" id="inp-licFrente-cam"
+                 accept="image/*" capture="environment"
+                 onchange="previsualizarDoc(this,'licFrente')" hidden />
+
+          <label class="btn btn-file" for="inp-licFrente-file">📂 Archivo</label>
+          <input type="file" id="inp-licFrente-file"
+                 accept="image/*,application/pdf"
+                 onchange="previsualizarDoc(this,'licFrente')" hidden />
+        </div>
+        <span class="doc-status" id="status-licFrente">⏳ Pendiente</span>
+      </div>
+
+      <!-- Licencia Dorso -->
+      <div class="doc-card" id="card-licDorso">
+        <div class="doc-icon">🚗</div>
+        <div class="doc-label">Licencia — Dorso</div>
+        <div class="doc-preview" id="prev-licDorso">
+          <span class="doc-placeholder">Sin imagen</span>
+        </div>
+        <div class="doc-btns">
+          <label class="btn btn-cam" for="inp-licDorso-cam">📷 Cámara</label>
+          <input type="file" id="inp-licDorso-cam"
+                 accept="image/*" capture="environment"
+                 onchange="previsualizarDoc(this,'licDorso')" hidden />
+
+          <label class="btn btn-file" for="inp-licDorso-file">📂 Archivo</label>
+          <input type="file" id="inp-licDorso-file"
+                 accept="image/*,application/pdf"
+                 onchange="previsualizarDoc(this,'licDorso')" hidden />
+        </div>
+        <span class="doc-status" id="status-licDorso">⏳ Pendiente</span>
+      </div>
+
+    </div><!-- /docs-grid -->
+
+    <div class="section-nav">
+      <button class="btn btn-back" onclick="irA(5)">← Anterior</button>
+      <button class="btn btn-submit" onclick="enviarFormulario()">
+        ✅ Enviar y Descargar Excel
+      </button>
+    </div>
+  </section>
+
+
+  <!-- ── PANTALLA DE ÉXITO ──────────────────────────────── -->
+  <section class="form-section" id="sec-ok">
+    <div class="success-wrap">
+      <div class="success-icon">✅</div>
+      <h2>¡Registro completado!</h2>
+      <p>Se descargó el archivo Excel con tus datos.<br>
+         Los documentos (DNI y Licencia) se guardaron en tu dispositivo.</p>
+      <p class="success-name" id="success-name"></p>
+      <button class="btn btn-next" onclick="nuevoFormulario()">Cargar otro empleado</button>
+    </div>
+  </section>
+
+</main><!-- /form-container -->
+
+
+<!-- ═══════════════════════════════════════════════════════
+     PANEL QR (para el administrador)
+     ═══════════════════════════════════════════════════════ -->
+<div class="qr-panel" id="qr-panel">
+  <button class="qr-toggle" onclick="toggleQR()" title="Mostrar/ocultar QR de acceso">
+    QR
+  </button>
+  <div class="qr-box" id="qr-box" style="display:none">
+    <p class="qr-label">Escaneá para abrir el formulario</p>
+    <div id="qr-code"></div>
+    <p class="qr-url" id="qr-url"></p>
+    <button class="btn btn-small" onclick="imprimirQR()">🖨 Imprimir QR</button>
+  </div>
+</div>
+
+<!-- Toast de notificaciones -->
+<div id="toast" class="toast"></div>
+
+<script src="script.js"></script>
+</body>
+</html>
